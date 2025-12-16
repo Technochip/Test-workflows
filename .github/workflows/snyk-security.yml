@@ -1,98 +1,37 @@
-name: Snyk SAST Scan
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# A sample workflow which sets up Snyk to analyze the full Snyk platform (Snyk Open Source, Snyk Code,
+# Snyk Container and Snyk Infrastructure as Code)
+# The setup installs the Snyk CLI - for more details on the possible commands
+# check https://docs.snyk.io/snyk-cli/cli-reference
+# The results of Snyk Code are then uploaded to GitHub Security Code Scanning
+#
+# In order to use the Snyk Action you will need to have a Snyk API token.
+# More details in https://github.com/snyk/actions#getting-your-snyk-token
+# or you can signup for free at https://snyk.io/login
+#
+# For more examples, including how to limit scans to only high-severity issues
+# and fail PR checks, see https://github.com/snyk/actions/
+
+name: Snyk Security
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main" ]
   pull_request:
     branches: ["main"]
 
 jobs:
   security:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      issues: write
-
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # 2️⃣ Run Snyk SAST scan ONLY
-      - name: Run Snyk SAST
-        uses: snyk/actions/python@master
-        continue-on-error: true
+      - uses: actions/checkout@master
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: code test
-          args: --sarif-file-output=snyk.sarif
-
-      # 3️⃣ Parse SARIF → Count vulnerabilities per file
-      - name: Parse SARIF for file-wise vulnerability count
-        run: |
-          if [ ! -f snyk.sarif ]; then
-            echo "RESULTS_LENGTH=0" >> $GITHUB_ENV
-            echo "FILE_REPORT=" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          # Total vulnerabilities
-          RESULTS_LENGTH=$(jq '.runs[0].results | length' snyk.sarif)
-          echo "RESULTS_LENGTH=$RESULTS_LENGTH" >> $GITHUB_ENV
-
-          # File-wise vulnerability count
-          FILE_REPORT=$(jq -r '
-            .runs[0].results[]
-            | .locations[0].physicalLocation.artifactLocation.uri
-            ' snyk.sarif \
-            | sort | uniq -c \
-            | sed "s/^/• /"
-          )
-
-          echo "FILE_REPORT<<EOF" >> $GITHUB_ENV
-          echo "$FILE_REPORT" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      # 4️⃣ Create GitHub Issue if vulnerabilities exist
-      - name: Create GitHub Issue
-        if: env.RESULTS_LENGTH != '0'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const vulnCount = process.env.RESULTS_LENGTH;
-            const fileReport = process.env.FILE_REPORT;
-            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚨 Snyk SAST found ${vulnCount} vulnerabilities`,
-              body: `
-### 🔐 Snyk Static Code Analysis Report
-
-**Total vulnerabilities:** ${vulnCount}
-
-### 📁 Vulnerabilities by file:
-${fileReport}
-
-🔎 **Full scan details:**  
-${runUrl}
-
-📌 **Action required:**
-- Review affected files
-- Fix reported issues
-- Re-run the workflow
-
-_This issue was automatically created by GitHub Actions._
-              `,
-              labels: ["security", "snyk", "sast"]
-            });
-
-      # 5️⃣ Fail the job if vulnerabilities exist
-      - name: Fail job
-        if: env.RESULTS_LENGTH != '0'
-        run: |
-          echo "SAST vulnerabilities detected. Failing the job."
-          exit 1
