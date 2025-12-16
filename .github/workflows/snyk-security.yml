@@ -71,6 +71,10 @@ jobs:
               title: `🚨 Snyk SAST found ${vulnCount} vulnerabilities`,
               body: `
 ### 🔐 Snyk Static Code Analysis Report
+body: |
+  ### 🔐 Snyk Static Code Analysis Report
+
+
 
 **Total vulnerabilities:** ${vulnCount}
 
