@@ -1,4 +1,4 @@
-name: Example workflow using Snyk
+name: Snyk SAST Scan
 
 on:
   push:
@@ -12,15 +12,15 @@ jobs:
 
     permissions:
       contents: read
-      issues: write   # REQUIRED to create GitHub issues
+      issues: write
 
     steps:
       # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Run Snyk SAST scan
-      - name: Run Snyk to check for vulnerabilities
+      # 2️⃣ Run Snyk SAST scan ONLY
+      - name: Run Snyk SAST
         uses: snyk/actions/python@master
         continue-on-error: true
         env:
@@ -29,52 +29,70 @@ jobs:
           command: code test
           args: --sarif-file-output=snyk.sarif
 
-      # 3️⃣ Count vulnerabilities safely
-      - name: Count total number of vulnerabilities
+      # 3️⃣ Parse SARIF → Count vulnerabilities per file
+      - name: Parse SARIF for file-wise vulnerability count
         run: |
           if [ ! -f snyk.sarif ]; then
             echo "RESULTS_LENGTH=0" >> $GITHUB_ENV
-            echo "SARIF file not found, assuming 0 vulnerabilities"
-          else
-            RESULTS_LENGTH=$(jq '.runs[0].results | length' snyk.sarif)
-            echo "RESULTS_LENGTH=$RESULTS_LENGTH" >> $GITHUB_ENV
-            echo "Vulnerabilities found: $RESULTS_LENGTH"
+            echo "FILE_REPORT=" >> $GITHUB_ENV
+            exit 0
           fi
 
+          # Total vulnerabilities
+          RESULTS_LENGTH=$(jq '.runs[0].results | length' snyk.sarif)
+          echo "RESULTS_LENGTH=$RESULTS_LENGTH" >> $GITHUB_ENV
+
+          # File-wise vulnerability count
+          FILE_REPORT=$(jq -r '
+            .runs[0].results[]
+            | .locations[0].physicalLocation.artifactLocation.uri
+            ' snyk.sarif \
+            | sort | uniq -c \
+            | sed "s/^/• /"
+          )
+
+          echo "FILE_REPORT<<EOF" >> $GITHUB_ENV
+          echo "$FILE_REPORT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       # 4️⃣ Create GitHub Issue if vulnerabilities exist
-      - name: Create GitHub Issue on vulnerabilities
+      - name: Create GitHub Issue
         if: env.RESULTS_LENGTH != '0'
         uses: actions/github-script@v7
         with:
           script: |
             const vulnCount = process.env.RESULTS_LENGTH;
+            const fileReport = process.env.FILE_REPORT;
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `🚨 Snyk detected ${vulnCount} vulnerabilities`,
+              title: `🚨 Snyk SAST found ${vulnCount} vulnerabilities`,
               body: `
-### 🔐 Snyk Security Scan Failed
+### 🔐 Snyk Static Code Analysis Report
 
-**Total vulnerabilities detected:** ${vulnCount}
+**Total vulnerabilities:** ${vulnCount}
 
-🔎 **View full scan details:**  
+### 📁 Vulnerabilities by file:
+${fileReport}
+
+🔎 **Full scan details:**  
 ${runUrl}
 
 📌 **Action required:**
-- Review Snyk findings
-- Fix reported vulnerabilities
+- Review affected files
+- Fix reported issues
 - Re-run the workflow
 
 _This issue was automatically created by GitHub Actions._
               `,
-              labels: ["security", "snyk", "vulnerability"]
+              labels: ["security", "snyk", "sast"]
             });
 
-      # 5️⃣ Fail the job (security gate)
-      - name: Fail the job if vulnerabilities exist
+      # 5️⃣ Fail the job if vulnerabilities exist
+      - name: Fail job
         if: env.RESULTS_LENGTH != '0'
         run: |
-          echo "Security vulnerabilities detected. Failing the job."
+          echo "SAST vulnerabilities detected. Failing the job."
           exit 1
