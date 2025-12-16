@@ -32,7 +32,7 @@ app.get("/user", (req, res) => {
 /**
  * ❌ Vulnerability 3: Hardcoded secret
  */
-const JWT_SECRET = "my-super-secret-key";
+const JWT_SECRET = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30";
 
 /**
  * ❌ Vulnerability 4: Insecure deserialization / eval
@@ -51,3 +51,13 @@ app.get("/greet", (req, res) => {
   res.send(`<h1>Hello ${name}</h1>`);
 });
 
+/**
+ * ❌ Vulnerability 6: Missing authentication / authorization
+ */
+app.delete("/admin/delete-all", (req, res) => {
+  res.send("All data deleted!");
+});
+
+app.listen(3000, () => {
+  console.log("Vulnerable app running on port 3000");
+});
