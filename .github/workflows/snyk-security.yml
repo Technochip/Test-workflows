@@ -74,22 +74,20 @@ jobs:
 body: |
   ### 🔐 Snyk Static Code Analysis Report
 
+  **Total vulnerabilities:** ${vulnCount}
+  
+  ### 📁 Vulnerabilities by file:
+  ${fileReport}
+  
+  🔎 **Full scan details:**  
+  ${runUrl}
+  
+  📌 **Action required:**
+  - Review affected files
+  - Fix reported issues
+  - Re-run the workflow
 
-
-**Total vulnerabilities:** ${vulnCount}
-
-### 📁 Vulnerabilities by file:
-${fileReport}
-
-🔎 **Full scan details:**  
-${runUrl}
-
-📌 **Action required:**
-- Review affected files
-- Fix reported issues
-- Re-run the workflow
-
-_This issue was automatically created by GitHub Actions._
+  _This issue was automatically created by GitHub Actions._
               `,
               labels: ["security", "snyk", "sast"]
             });
