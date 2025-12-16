@@ -1,4 +1,6 @@
 echo "Test hello world"
 echo "testing my push work X"
 
-SECRET = "AKIA123456789EXAMPLE";
+
+Access Key ID: AKIAIOSFODNN7EXAMPLE
+Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
