@@ -51,13 +51,3 @@ app.get("/greet", (req, res) => {
   res.send(`<h1>Hello ${name}</h1>`);
 });
 
-/**
- * ❌ Vulnerability 6: Missing authentication / authorization
- */
-app.delete("/admin/delete-all", (req, res) => {
-  res.send("All data deleted!");
-});
-
-app.listen(3000, () => {
-  console.log("Vulnerable app running on port 3000");
-});
