@@ -16,7 +16,7 @@ on:
 jobs: 
 
   snyk:
-    name: Snyk SAST Scan
+    name: Snyk Scan
     runs-on: ubuntu-latest
 
     permissions:
@@ -44,7 +44,7 @@ jobs:
   
 
   semgrep:
-      name: semgrep/ci
+      name: Semgrep Scan
       runs-on: ubuntu-latest
       permissions:
         contents: read
