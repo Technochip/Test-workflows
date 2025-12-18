@@ -16,14 +16,12 @@ permissions:
   contents: read
   pull-requests: read
 
-jobs:
-
-  
+jobs: 
 
   snyk:
     name: Snyk SAST Scan
     runs-on: ubuntu-latest
-     
+
     permissions:
       security-events: write
 
@@ -41,6 +39,12 @@ jobs:
         with:
           command: code test
           args: --sarif-file-output=snyk.sarif
+
+      - name: Upload analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          snyk_file: snyk.sarif
+          
 
   
 
@@ -60,9 +64,4 @@ jobs:
         run: semgrep ci
 
 
-      - name: Upload analysis results to GitHub
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: eslint-results.sarif
-          snyk_file: snyk.sarif
-          wait-for-processing: true
+
