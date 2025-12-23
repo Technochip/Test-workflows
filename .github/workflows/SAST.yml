@@ -35,10 +35,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: code test
-          args: --sarif-file-output=snyk.sarif
 
-      - name: Upload analysis results to GitHub
-        run: cat snyk.sarif 
           
 
   
@@ -55,7 +52,7 @@ jobs:
       if: (github.actor != 'dependabot[bot]')
       steps:
         - uses: actions/checkout@v4
-        - run: semgrep ci
+        - run: semgrep ci -q
 
 
 
