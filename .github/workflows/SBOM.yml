@@ -1,4 +1,4 @@
-name: SBOM Security Pipeline
+name: SBOM Scanning
 
 on:
   workflow_dispatch: {}
