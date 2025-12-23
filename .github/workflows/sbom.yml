@@ -22,13 +22,13 @@ jobs:
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
           syft dir:. \
-            --exclude /.git \
-            --exclude /.github \
+            --exclude './.git/**' \
+            --exclude './.github/**' \
             -o cyclonedx-json > output-sbom.json
 
-      - name: Scan SBOM with Grype
+      - name: Scan SBOM with Grype (fail on high vuln)
         run: |
-          grype sbom:output-sbom.json -o json > grype-sbom-scan.json
+          grype sbom:output-sbom.json --fail-on high -o json > grype-sbom-scan.json
 
       - name: Upload SBOM and Scan Results
         uses: actions/upload-artifact@v4
