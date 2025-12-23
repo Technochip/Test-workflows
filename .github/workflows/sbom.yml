@@ -1,0 +1,39 @@
+name: SBOM Security Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM for current repo (exclude .git, .github)
+        run: |
+          syft dir:. \
+            --exclude .git \
+            --exclude .github \
+            -o cyclonedx-json > output-sbom.json
+
+      - name: Scan SBOM with Grype
+        run: |
+          grype sbom:output-sbom.json -o json > grype-sbom-scan.json
+
+      - name: Upload SBOM and Scan Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: Reports
+          path: |
+            output-sbom.json
+            grype-sbom-scan.json
