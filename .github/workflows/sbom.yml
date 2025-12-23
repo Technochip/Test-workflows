@@ -22,8 +22,6 @@ jobs:
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
           syft dir:. \
-            --exclude .git \
-            --exclude .github \
             -o cyclonedx-json > output-sbom.json
 
       - name: Scan SBOM with Grype
