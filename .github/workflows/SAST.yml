@@ -30,7 +30,7 @@ jobs:
       - uses: actions/checkout@master
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
-        continue-on-error: true # To make sure that SARIF upload gets called
+        continue-on-error: false # To make workflow fail when vuln detected
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -52,7 +52,7 @@ jobs:
       if: (github.actor != 'dependabot[bot]')
       steps:
         - uses: actions/checkout@v4
-        - run: semgrep ci -q
+        - run: semgrep ci -q -v
 
 
 
