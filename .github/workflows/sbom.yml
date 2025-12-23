@@ -1,7 +1,11 @@
 name: SBOM Security Pipeline
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
+  pull_request: {}
+  push:
+    branches:
+      - dev
 
 jobs:
   security-scan:
