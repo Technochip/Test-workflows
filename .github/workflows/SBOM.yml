@@ -23,6 +23,10 @@ jobs:
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
+      - name: Install Node dependencies
+        run: |
+          npm install
+
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
           syft dir:. \
