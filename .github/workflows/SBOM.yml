@@ -88,7 +88,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = "security:sbom";
-            const title = "🚨 SBOM Vulnerabilities Detected (Grype)";
+            const title = "🚨 Vulnerable Dependencies Detected (Grype)";
             
             const jobResult = "${{ needs.security-scan.result }}";
             const hasFailures = jobResult === "failure";
@@ -120,7 +120,7 @@ jobs:
             // 🔴 Vulns found → CREATE or UPDATE (NO COMMENTS)
             if (hasFailures) {
               const body = `
-            ### 🚨 SBOM Vulnerabilities Detected
+            ### 🚨 Vulnerable Dependencies Detected
             
             **Workflow:** ${context.workflow}
             **Branch:** ${context.ref}
