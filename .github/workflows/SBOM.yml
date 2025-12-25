@@ -1,93 +1,62 @@
-name: Secret Scanning
+name: SBOM Scanning
 
 on:
-  workflow_dispatch:
-  pull_request:
+  workflow_dispatch: {}
+  pull_request: {}
   push:
-    branches: [dev]
-  schedule:
-    - cron: "39 10 * * *"
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+    branches:
+      - dev
 
 jobs:
-
-# =========================
-# SCAN JOB (RUN ONCE)
-# =========================
-  secret-scan:
+  security-scan:
     runs-on: ubuntu-latest
 
-    outputs:
-      gitleaks_found: ${{ steps.gitleaks.outputs.found }}
-      trufflehog_found: ${{ steps.trufflehog.outputs.found }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Node dependencies
+        run: |
+          npm install
+
+      - name: Generate SBOM for current repo (exclude .git, .github)
+        run: |
+          syft dir:. \
+            --exclude './.git/**' \
+            --exclude './.github/**' \
+            -o cyclonedx-json > output-sbom.json
+
+      - name: Scan SBOM with Grype (human-readable)
+        run: |
+          grype sbom:output-sbom.json -o table > grype-table.txt
+
+      - name: upload grype-table.txt
+        uses: actions/upload-artifact@v4
         with:
-          fetch-depth: 0
+          name: Reports
+          path: grype-table.txt
 
-      # ---- Gitleaks ----
-      - name: Install Gitleaks
+      - name: Scan SBOM with Grype (fail on HIGH, save JSON)
         run: |
-          sudo apt update
-          sudo apt install gitleaks -y
+          grype sbom:output-sbom.json --fail-on high -o json > grype-sbom-scan.json
 
-      - name: Run Gitleaks
-        id: gitleaks
-        run: |
-          gitleaks detect --no-git -v --redact \
-            && echo "found=false" >> $GITHUB_OUTPUT \
-            || echo "found=true" >> $GITHUB_OUTPUT
 
-          gitleaks detect --no-git -v --redact > gitleaks-output.txt || true
-
-      # ---- TruffleHog ----
-      - name: Run TruffleHog
-        id: trufflehog
-        run: |
-          docker run --rm \
-            -v "$PWD:/pwd" \
-            trufflesecurity/trufflehog:latest \
-            filesystem /pwd --fail \
-            && echo "found=false" >> $GITHUB_OUTPUT \
-            || echo "found=true" >> $GITHUB_OUTPUT
-
-          docker run --rm \
-            -v "$PWD:/pwd" \
-            trufflesecurity/trufflehog:latest \
-            filesystem /pwd --fail \
-            > trufflehog-output.txt || true
-
-      # ---- Upload artifacts ----
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - name: Upload SBOM and Scan Results
+        uses: actions/upload-artifact@v4
         with:
-          name: secret-scan-reports
+          name: Reports
           path: |
-            gitleaks-output.txt
-            trufflehog-output.txt
+            output-sbom.json
+            grype-sbom-scan.json
 
-# =========================
-# ISSUE JOB (NO SCANNING)
-# =========================
-  create_secret_issue:
-    name: Create / Update Secret Scan Issue
-    needs: secret-scan
-    runs-on: ubuntu-latest
-    if: always()
-
-    permissions:
-      contents: read
-      issues: write
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: secret-scan-reports
 
       - name: Create / Update GitHub Issue
         uses: actions/github-script@v7
@@ -98,21 +67,11 @@ jobs:
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const label = "security:secrets";
-            const title = "🚨 Hard Coded  Detected";
+            const label = "security:sbom";
+            const title = "🚨 Vulnerable Dependencies Detected (Grype)";
+            const reportFile = "grype-table.txt";
 
-            const gitleaksFound =
-              "${{ needs.secret-scan.outputs.gitleaks_found }}" === "true";
-            const trufflehogFound =
-              "${{ needs.secret-scan.outputs.trufflehog_found }}" === "true";
-
-            const secretsFound = gitleaksFound || trufflehogFound;
-
-            const read = (f) =>
-              fs.existsSync(f) ? fs.readFileSync(f, "utf8").trim() : "No issues found.";
-
-            const gitleaksOutput = read("gitleaks-output.txt");
-            const trufflehogOutput = read("trufflehog-output.txt");
+            const fileExists = fs.existsSync(reportFile);
 
             const issues = await github.rest.issues.listForRepo({
               owner,
@@ -123,59 +82,53 @@ jobs:
 
             const existingIssue = issues.data.find(i => i.title === title);
 
-            // 🟢 No secrets → close issue
-            if (!secretsFound && existingIssue) {
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number: existingIssue.number,
-                state: "closed"
-              });
-              return;
-            }
-
-            // 🔴 Secrets found → create/update issue
-            if (secretsFound) {
-              const body = `
-### 🚨 Secret Scan Vulnerabilities Detected
-
-**Workflow:** ${context.workflow}  
-**Branch:** ${context.ref}  
-**Commit:** ${context.sha}
-
----
-
-### 🔍 Gitleaks
-\`\`\`
-${gitleaksOutput}
-\`\`\`
-
----
-
-### 🔍 TruffleHog
-\`\`\`
-${trufflehogOutput}
-\`\`\`
-
-🔗 **Run:** https://github.com/${owner}/${repo}/actions/runs/${context.runId}
-
-⛔ This issue is automatically managed by GitHub Actions.
-              `;
-
+            // 🟢 NO grype output → close issue & exit silently
+            if (!fileExists) {
               if (existingIssue) {
                 await github.rest.issues.update({
                   owner,
                   repo,
                   issue_number: existingIssue.number,
-                  body
-                });
-              } else {
-                await github.rest.issues.create({
-                  owner,
-                  repo,
-                  title,
-                  body,
-                  labels: [label]
+                  state: "closed"
                 });
               }
+              return;
+            }
+
+            // 🔴 grype output exists → create or update issue
+            const tableOutput = fs.readFileSync(reportFile, "utf8");
+
+            const body = `
+            ### 🚨 Vulnerable Dependencies Detected
+
+            **Workflow:** ${context.workflow}
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+
+            ### 📦 Grype Scan Output
+            \`\`\`
+            ${tableOutput}
+            \`\`\`
+
+            🔗 **Run details**
+            https://github.com/${owner}/${repo}/actions/runs/${context.runId}
+
+            ⛔ This issue is automatically updated on every scan.
+            `;
+
+            if (existingIssue) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existingIssue.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: [label]
+              });
             }
