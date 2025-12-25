@@ -39,7 +39,7 @@ jobs:
           grype sbom:output-sbom.json -o table > grype-table.txt
 
       - name: upload grype-table.txt
-        uses: actions/upload-artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
           name: Reports
           path: grype-table.txt
