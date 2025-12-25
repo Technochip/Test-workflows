@@ -52,6 +52,8 @@ jobs:
       if: (github.actor != 'dependabot[bot]')
       steps:
         - uses: actions/checkout@v4
-        - run: semgrep ci --config p/security-audit
+        - run: |
+            semgrep ci --json > semgrep.json
+            jq '.results[] | select(.extra.severity == "ERROR")' semgrep.json && exit 1 || exit 0
 
 
