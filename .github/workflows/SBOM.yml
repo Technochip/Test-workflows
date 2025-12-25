@@ -43,7 +43,7 @@ jobs:
         with:
           name: Reports
           path: grype-table.txt
-      
+
       - name: Scan SBOM with Grype (fail on HIGH, save JSON)
         run: |
           grype sbom:output-sbom.json --fail-on high -o json > grype-sbom-scan.json
@@ -58,101 +58,77 @@ jobs:
             grype-sbom-scan.json
 
 
-
-
-
-
-  create_sbom_issue:
-    name: Create / Update SBOM Vulnerability Issue
-    needs: security-scan
-    runs-on: ubuntu-latest
-    if: always()
-
-    permissions:
-      contents: read
-      issues: write
-
-    steps:
-      - name: Download scan artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Reports
-
       - name: Create / Update GitHub Issue
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-           const fs = require("fs");
+            const fs = require("fs");
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = "security:sbom";
             const title = "🚨 Vulnerable Dependencies Detected (Grype)";
-            
-            const jobResult = "${{ needs.security-scan.result }}";
-            const hasFailures = jobResult === "failure";
-            
-            const tableOutput = fs.existsSync("grype-table.txt")
-              ? fs.readFileSync("grype-table.txt", "utf8")
-              : "No Grype output found.";
-            
+            const reportFile = "grype-table.txt";
+
+            const fileExists = fs.existsSync(reportFile);
+
             const issues = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
               labels: label
             });
-            
+
             const existingIssue = issues.data.find(i => i.title === title);
-            
-            // 🟢 NO vulns → close issue
-            if (!hasFailures && existingIssue) {
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number: existingIssue.number,
-                state: "closed"
-              });
-              return;
-            }
-            
-            // 🔴 Vulns found → CREATE or UPDATE (NO COMMENTS)
-            if (hasFailures) {
-              const body = `
-            ### 🚨 Vulnerable Dependencies Detected
-            
-            **Workflow:** ${context.workflow}
-            **Branch:** ${context.ref}
-            **Commit:** ${context.sha}
-            
-            ### 📦 Grype Scan Output
-            \`\`\`
-            ${tableOutput}
-            \`\`\`
-            
-            🔗 **Run details**
-            https://github.com/${owner}/${repo}/actions/runs/${context.runId}
-            
-            ⛔ This issue is automatically updated on every scan.
-              `;
-            
+
+            // 🟢 NO grype output → close issue & exit silently
+            if (!fileExists) {
               if (existingIssue) {
-                // 🔁 UPDATE issue body (overwrite)
                 await github.rest.issues.update({
                   owner,
                   repo,
                   issue_number: existingIssue.number,
-                  body
-                });
-              } else {
-                // 🆕 CREATE issue
-                await github.rest.issues.create({
-                  owner,
-                  repo,
-                  title,
-                  body,
-                  labels: [label]
+                  state: "closed"
                 });
               }
+              return;
+            }
+
+            // 🔴 grype output exists → create or update issue
+            const tableOutput = fs.readFileSync(reportFile, "utf8");
+
+            const body = `
+            ### 🚨 Vulnerable Dependencies Detected
+
+            **Workflow:** ${context.workflow}
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+
+            ### 📦 Grype Scan Output
+            \`\`\`
+            ${tableOutput}
+            \`\`\`
+
+            🔗 **Run details**
+            https://github.com/${owner}/${repo}/actions/runs/${context.runId}
+
+            ⛔ This issue is automatically updated on every scan.
+            `;
+
+            if (existingIssue) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existingIssue.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: [label]
+              });
             }
