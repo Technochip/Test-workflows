@@ -57,3 +57,30 @@ jobs:
             jq '.results[] | select(.extra.severity == "ERROR")' semgrep.json && exit 1 || exit 0
 
 
+  create_issue:
+    name: Create Issue if Vulnerability Found
+    needs: [snyk, semgrep]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "🚨 SAST Vulnerability Detected",
+              body: `
+              **Workflow:** ${context.workflow}
+              **Branch:** ${context.ref}
+              **Commit:** ${context.sha}
+
+              One or more SAST tools detected security vulnerabilities.
+
+              🔗 Run details:
+              https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+              `
+            })
+
+
