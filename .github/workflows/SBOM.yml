@@ -37,6 +37,12 @@ jobs:
       - name: Scan SBOM with Grype (human-readable)
         run: |
           grype sbom:output-sbom.json -o table > grype-table.txt
+
+      - name: upload grype-table.txt
+        uses: actions/upload-artifacts@v4
+        with:
+          name: Reports
+          path: grype-table.txt
       
       - name: Scan SBOM with Grype (fail on HIGH, save JSON)
         run: |
@@ -49,7 +55,6 @@ jobs:
           name: Reports
           path: |
             output-sbom.json
-            grype-table.txt
             grype-sbom-scan.json
 
 
