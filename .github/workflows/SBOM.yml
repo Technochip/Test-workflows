@@ -83,30 +83,30 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require("fs");
+           const fs = require("fs");
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = "security:sbom";
             const title = "🚨 SBOM Vulnerabilities Detected (Grype)";
-
+            
             const jobResult = "${{ needs.security-scan.result }}";
             const hasFailures = jobResult === "failure";
-
+            
             const tableOutput = fs.existsSync("grype-table.txt")
               ? fs.readFileSync("grype-table.txt", "utf8")
-              : "No output found.";
-
+              : "No Grype output found.";
+            
             const issues = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
               labels: label
             });
-
+            
             const existingIssue = issues.data.find(i => i.title === title);
-
-            // 🟢 No vulns → auto-close
+            
+            // 🟢 NO vulns → close issue
             if (!hasFailures && existingIssue) {
               await github.rest.issues.update({
                 owner,
@@ -114,52 +114,45 @@ jobs:
                 issue_number: existingIssue.number,
                 state: "closed"
               });
-
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: existingIssue.number,
-                body: "✅ No HIGH or CRITICAL SBOM vulnerabilities detected. Closing issue."
-              });
-
               return;
             }
-
-            // 🔴 Vulns found → create or update
+            
+            // 🔴 Vulns found → CREATE or UPDATE (NO COMMENTS)
             if (hasFailures) {
               const body = `
-                ### 🚨 SBOM Vulnerabilities Detected
-                
-                **Workflow:** ${context.workflow}
-                **Branch:** ${context.ref}
-                **Commit:** ${context.sha}
-                
-                ### 📦 Grype Scan Output
-                \`\`\`
-                ${tableOutput}
-                \`\`\`
-                
-                🔗 **Run details**
-                https://github.com/${owner}/${repo}/actions/runs/${context.runId}
-                
-                ⛔ This issue will auto-close once vulnerabilities are fixed.
-                              `;
-                
-                              if (existingIssue) {
-                                await github.rest.issues.createComment({
-                                  owner,
-                                  repo,
-                                  issue_number: existingIssue.number,
-                                  body
-                                });
-                              } else {
-                                await github.rest.issues.create({
-                                  owner,
-                                  repo,
-                                  title,
-                                  body,
-                                  labels: [label]
-                                });
-                              }
-                            }
-
+            ### 🚨 SBOM Vulnerabilities Detected
+            
+            **Workflow:** ${context.workflow}
+            **Branch:** ${context.ref}
+            **Commit:** ${context.sha}
+            
+            ### 📦 Grype Scan Output
+            \`\`\`
+            ${tableOutput}
+            \`\`\`
+            
+            🔗 **Run details**
+            https://github.com/${owner}/${repo}/actions/runs/${context.runId}
+            
+            ⛔ This issue is automatically updated on every scan.
+              `;
+            
+              if (existingIssue) {
+                // 🔁 UPDATE issue body (overwrite)
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: existingIssue.number,
+                  body
+                });
+              } else {
+                // 🆕 CREATE issue
+                await github.rest.issues.create({
+                  owner,
+                  repo,
+                  title,
+                  body,
+                  labels: [label]
+                });
+              }
+            }
