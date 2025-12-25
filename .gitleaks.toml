@@ -1,6 +1,4 @@
 [allowlist]
-description = "Ignore known historical leaked secrets"
-fingerprints = [
-  "c4760c7b99e4c58e7bd39355c9b4a5101b302d19:shell.sh:aws-access-token:4",
-  "dc31aa5415d2fdf774547afa6b4941bcb10cfd03:shell.sh:aws-access-token:4"
-]
+description = "c4760c7b99e4c58e7bd39355c9b4a5101b302d19:shell.sh:aws-access-token:4, dc31aa5415d2fdf774547afa6b4941bcb10cfd03:shell.sh:aws-access-token:4"
+rules = ["aws-access-token"]
+paths = ["shell.sh"]
