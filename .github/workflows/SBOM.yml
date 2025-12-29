@@ -104,7 +104,6 @@ jobs:
               labels: label
             });
 
-            const existingIssue = issues.data.find(i => i.title === title);
             const tableOutput = fs.readFileSync(reportFile, "utf8");
             
             // 🟢 NO vulnerabilities → close issue & exit
