@@ -19,9 +19,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Syft
+      - name: Install Trivy
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin 
 
       - name: Install Grype
         run: |
@@ -33,8 +33,10 @@ jobs:
 
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
-          syft dir:. \
-          -o cyclonedx-json > output-sbom.json
+           trivy fs . \
+            --format cyclonedx \
+            --include-dev-deps \
+            --output output-sbom.json
       
       - name: Scan SBOM with Grype (human-readable)
         run: |
@@ -56,7 +58,6 @@ jobs:
         with:
           name: Results
           path: |
-            output-sbom.json
             grype-sbom-scan.json
 
 
