@@ -1,6 +1,7 @@
 name: SAST
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - dev
@@ -50,8 +51,7 @@ jobs:
       steps:
         - uses: actions/checkout@v4
         - run: |
-            semgrep ci --json > semgrep.json
-            jq '.results[] | select(.extra.severity == "ERROR")' semgrep.json && exit 1 || exit 0
+            semgrep ci 
 
 
   sonarqube:
