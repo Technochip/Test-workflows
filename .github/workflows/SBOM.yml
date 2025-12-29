@@ -33,8 +33,7 @@ jobs:
 
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
-            syft dir:node_modules \
-                  --catalogers npm \
+            syft dir:. \
                   -o cyclonedx-json > output-sbom.json
       
       - name: Scan SBOM with Grype (human-readable)
