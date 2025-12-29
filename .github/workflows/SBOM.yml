@@ -105,9 +105,13 @@ jobs:
             });
 
             const existingIssue = issues.data.find(i => i.title === title);
-
-            // 🟢 NO grype output → close issue & exit silently
-            if (!fileExists) {
+            const tableOutput = fs.readFileSync(reportFile, "utf8");
+            
+            // 🟢 NO vulnerabilities → close issue & exit
+            if (
+              tableOutput.includes("No vulnerabilities found") ||
+              tableOutput.trim() === ""
+            ) {
               if (existingIssue) {
                 await github.rest.issues.update({
                   owner,
@@ -118,7 +122,7 @@ jobs:
               }
               return;
             }
-
+            
             // 🔴 grype output exists → create or update issue
             const tableOutput = fs.readFileSync(reportFile, "utf8");
 
