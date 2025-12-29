@@ -29,7 +29,7 @@ jobs:
 
       - name: Install Node dependencies
         run: |
-          npm ci
+          npm install
 
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
