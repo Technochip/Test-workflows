@@ -38,7 +38,7 @@ jobs:
 
       - name: Scan SBOM with Grype (human-readable)
         run: |
-          grype sbom:output-sbom.json -o table > grype-table.txt
+          grype sbom:output-sbom.json -o table 
 
       - name: upload grype-table.txt
         uses: actions/upload-artifact@v4
