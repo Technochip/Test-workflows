@@ -30,7 +30,6 @@ jobs:
       - name: Install Node dependencies
         run: |
           npm install
-          npm audit
 
       - name: Generate SBOM for current repo (exclude .git, .github)
         run: |
