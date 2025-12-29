@@ -50,15 +50,8 @@ jobs:
 
       - name: Scan SBOM with Grype (fail on HIGH, save JSON)
         run: |
-          grype sbom:output-sbom.json --fail-on high -o json > grype-sbom-scan.json
-
-
-      - name: Upload SBOM and Scan Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Results
-          path: |
-            grype-sbom-scan.json
+          trivy fs .   --format table  --scanners vuln  --severity HIGH,CRITICAL  --include-dev-deps
+          grype sbom:output-sbom.json --fail-on high 
 
 
 
