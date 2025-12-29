@@ -88,25 +88,26 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require("fs");
-
+            
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const label = "security:sbom";
             const title = "🚨 Vulnerable Dependencies Detected (Grype)";
             const reportFile = "grype-table.txt";
-
-            const fileExists = fs.existsSync(reportFile);
-
+            
             const issues = await github.rest.issues.listForRepo({
               owner,
               repo,
               state: "open",
               labels: label
             });
-
+            
+            const existingIssue = issues.data.find(i => i.title === title);
+            
+            // Read file ONCE
             const tableOutput = fs.readFileSync(reportFile, "utf8");
             
-            // 🟢 NO vulnerabilities → close issue & exit
+            // 🟢 No vulnerabilities → close issue & exit
             if (
               tableOutput.includes("No vulnerabilities found") ||
               tableOutput.trim() === ""
@@ -122,27 +123,25 @@ jobs:
               return;
             }
             
-            // 🔴 grype output exists → create or update issue
-            const tableOutput = fs.readFileSync(reportFile, "utf8");
-
+            // 🔴 Vulnerabilities exist → create or update issue
             const body = `
             ### 🚨 Vulnerable Dependencies Detected
-
+            
             **Workflow:** ${context.workflow}
             **Branch:** ${context.ref}
             **Commit:** ${context.sha}
-
+            
             ### 📦 Grype Scan Output
             \`\`\`
             ${tableOutput}
             \`\`\`
-
+            
             🔗 **Run details**
             https://github.com/${owner}/${repo}/actions/runs/${context.runId}
-
+            
             ⛔ This issue is automatically updated on every scan.
             `;
-
+            
             if (existingIssue) {
               await github.rest.issues.update({
                 owner,
