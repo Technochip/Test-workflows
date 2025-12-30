@@ -55,21 +55,19 @@ jobs:
   sonarqube:
       name: SonarQube
       runs-on: ubuntu-latest
-      permissions:
-        contents: read
-        actions: read
       steps:
-        - uses: actions/checkout@v4
+        - uses: actions/checkout@v3
           with:
-            fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-        - name: SonarQube Scan
-          uses: SonarSource/sonarqube-scan-action@v6
-          with:
-            projectKey: Technochip_Test-workflows
-            organization: technochip
-            projectName: Test-workflows
+              fetch-depth: 0
+        - name: SonarCloud Scan
+          uses: sonarsource/sonarcloud-github-action@master
           env:
-            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+              GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+              SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          with:
+            args: >
+                -Dsonar.organization=technochip
+                -Dsonar.projectKey=Test-workflows
           
 
 
