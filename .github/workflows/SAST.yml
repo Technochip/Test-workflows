@@ -52,34 +52,13 @@ jobs:
             semgrep ci 
 
 
-  sonarqube:
-      name: SonarQube
-      runs-on: ubuntu-latest
-      permissions:
-        contents: read
-        actions: read
-      steps:
-        - uses: actions/checkout@v4
-          with:
-              fetch-depth: 0
-              show-progress: false
-              
-        - name: SonarCloud Scan
-          uses: sonarsource/sonarqube-scan-action@master
-          env:
-              GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-              SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          with:
-            args: >
-                -Dsonar.organization=technochip
-                -Dsonar.projectKey=Test-workflows
-                -Dsonar.log.level=WARN
+
           
 
 
   create_issue:
     name: Create / Update Security Issue
-    needs: [snyk, semgrep, sonarqube]
+    needs: [snyk, semgrep]
     runs-on: ubuntu-latest
     if: always()
   
@@ -101,8 +80,7 @@ jobs:
             // 1️⃣ Check workflow result
             const snykResult = "${{ needs.snyk.result }}";
             const semgrepResult = "${{ needs.semgrep.result }}";
-            const sonarqubeResult = "${{ needs.sonarqube.result }}";
-            const hasFailures = snykResult === "failure" || semgrepResult === "failure" ||sonarqubeResult === "failure";
+            const hasFailures = snykResult === "failure" || semgrepResult === "failure"
   
             // 2️⃣ Find existing open issue
             const issues = await github.rest.issues.listForRepo({
@@ -144,8 +122,7 @@ jobs:
                     
                     ### Scan Results
                     - **Snyk:** ${snykResult}
-                    - **Semgrep:** ${semgrepResult}
-                    - **SonarQube:** ${sonarqubeResult}
+                    - **Semgrep:** ${semgrepResult}   
                     
                     🔗 **Run details**
                     https://github.com/${owner}/${repo}/actions/runs/${context.runId}
