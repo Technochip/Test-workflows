@@ -65,9 +65,9 @@ jobs:
         - name: SonarQube Scan
           uses: SonarSource/sonarqube-scan-action@v6
           with:
-            projectKey: my-project
-            organization: Technochip
-            projectName: my-project
+            projectKey: Technochip_Test-workflows
+            organization: technochip
+            projectName: Test-workflows
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           
