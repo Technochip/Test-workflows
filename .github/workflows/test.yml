@@ -1,0 +1,62 @@
+name: my own  workflow
+
+on:
+  workflow_dispatch: {}
+  push:
+      branches:
+        - dev
+  pull_request:
+      branches:
+        - dev
+
+
+jobs:
+
+  wizard:
+    name: Just priniting and uploading
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+       - name: insalling screenfetch
+         run: sudo apt install screenfetch -y
+            
+       
+       - name: running screenfetch and saving it
+         run: |
+            screenfetch > screen.txt
+       
+       - name: upload screen.txt
+         uses: actions/upload-artifact@v4
+         with:
+            name: Files
+            path: screen.txt
+
+
+
+  warlock:
+      name: downloading file.txt
+      needs: wizard
+      runs-on: ubuntu-latest
+
+      if: always()
+
+      permissions:
+        contents: read
+        actions: read
+
+      steps:
+        - name: downloading screen.txt
+          uses: actions/download-artifact@v4
+          with:
+            name: Files
+
+        - name: echoing screen.txt
+          run: |
+            cat screen.txt
+      
+                
+      
