@@ -8,14 +8,14 @@ echo "Running ESLint..."
 npm run lint
 LINT_STATUS=$?
 
-# Check if trufflehog is installed
-if ! command -v trufflehog >/dev/null 2>&1; then
-  echo  trufflehog not found"
-  echo " Install it using: apt install trufflehog"
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo  "gitleaks not found"
+  echo " Install it using: apt install gitleaks"
   GG_STATUS=1
 else
-  echo "🔐 Running trufflehog secret scan..."
-trufflehog git file://. --since-commit HEAD --only-verified --fail
+  echo "🔐 Running gitleaks secret scan..."
+  gitleaks protect --staged  -v
   GG_STATUS=$?
 fi
 
@@ -28,9 +28,9 @@ else
 fi
 
 if [ $GG_STATUS -ne 0 ]; then
-  echo "❌ trufflehog secret scan failed"
+  echo "❌ gitleaks secret scan failed"
 else
-  echo "✅ trufflehog secret scan passed"
+  echo "✅ gitleaks secret scan passed"
 fi
 
 echo "----------------------------"
