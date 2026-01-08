@@ -1,4 +1,42 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+echo "🔍 Running ESLint..."
 npm run lint
+LINT_STATUS=$?
+
+# Check if ggshield is installed
+if ! command -v ggshield >/dev/null 2>&1; then
+  echo "❌ ggshield not found"
+  echo "👉 Install it using: pipx install ggshield"
+  GG_STATUS=1
+else
+  echo "🔐 Running GGShield secret scan..."
+  ggshield secret scan pre-commit
+  GG_STATUS=$?
+fi
+
+echo "----------------------------"
+
+if [ $LINT_STATUS -ne 0 ]; then
+  echo "❌ ESLint failed"
+else
+  echo "✅ ESLint passed"
+fi
+
+if [ $GG_STATUS -ne 0 ]; then
+  echo "❌ GGShield secret scan failed"
+else
+  echo "✅ GGShield secret scan passed"
+fi
+
+echo "----------------------------"
+
+# Fail commit if any check failed
+if [ $LINT_STATUS -ne 0 ] || [ $GG_STATUS -ne 0 ]; then
+  echo "🚫 Pre-commit checks failed. Commit aborted."
+  exit 1
+fi
+
+echo "🎉 All pre-commit checks passed!"
+exit 0
