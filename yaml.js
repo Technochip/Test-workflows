@@ -8,8 +8,8 @@ const Router = express.Router();
 const isYaml = (filename) => filename.split(".").pop() === "yaml";
 
 
-AWS_ACCESS_KEY_ID=AKIAFAKE1234567890
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG+bPxRfiCYFAKEKEY
+/* AWS_ACCESS_KEY_ID=AKIAFAKE1234567890
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG+bPxRfiCYFAKEKEY */
 
 
 Router.post("/", (req, res) => {
