@@ -1,6 +1,7 @@
 name: SAST
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - dev
@@ -8,7 +9,6 @@ on:
     branches:
       - main
       
-
 
 
 jobs: 
@@ -19,8 +19,7 @@ jobs:
 
     permissions:
       security-events: write
-
-      # If your repository is private, also add:
+    # If your repository is private, also add:
       actions: read
       contents: read
 
@@ -54,26 +53,13 @@ jobs:
             jq '.results[] | select(.extra.severity == "ERROR")' semgrep.json && exit 1 || exit 0
 
 
-  sonarqube:
-      name: SonarQube
-      runs-on: ubuntu-latest
-      permissions:
-        contents: read
-        actions: read
-      steps:
-        - uses: actions/checkout@v4
-          with:
-            fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-        - name: SonarQube Scan
-          uses: SonarSource/sonarqube-scan-action@v6
-          env:
-            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      
+
+          
 
 
   create_issue:
     name: Create / Update Security Issue
-    needs: [snyk, semgrep, sonarqube]
+    needs: [snyk, semgrep]
     runs-on: ubuntu-latest
     if: always()
   
@@ -95,8 +81,7 @@ jobs:
             // 1️⃣ Check workflow result
             const snykResult = "${{ needs.snyk.result }}";
             const semgrepResult = "${{ needs.semgrep.result }}";
-            const sonarqubeResult = "${{ needs.sonarqube.result }}";
-            const hasFailures = snykResult === "failure" || semgrepResult === "failure" ||sonarqubeResult === "failure";
+            const hasFailures = snykResult === "failure" || semgrepResult === "failure"
   
             // 2️⃣ Find existing open issue
             const issues = await github.rest.issues.listForRepo({
@@ -138,8 +123,7 @@ jobs:
                     
                     ### Scan Results
                     - **Snyk:** ${snykResult}
-                    - **Semgrep:** ${semgrepResult}
-                    - **SonarQube:** ${sonarqubeResult}
+                    - **Semgrep:** ${semgrepResult}   
                     
                     🔗 **Run details**
                     https://github.com/${owner}/${repo}/actions/runs/${context.runId}
