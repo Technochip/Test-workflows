@@ -1,0 +1,47 @@
+name: Doppler secrets injection
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+     - main
+
+jobs:
+
+  Doppler:
+
+    name: injecting secret
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Doppler CLI
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      # Inject secrets
+      - name: Load secrets from Doppler
+        run: |
+          doppler secrets download --no-file --format env > doppler.env
+          source doppler.env
+          echo "IP_ADDR=$IP_ADDR" >> $GITHUB_ENV
+          echo "USERNAME=$USERNAME" >> $GITHUB_ENV
+          echo "PASSWORD=$PASSWORD" >> $GITHUB_ENV
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+      - name: SSH into server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ env.IP_ADDR }}
+          username: ${{ env.USERNAME }}
+          password: ${{ env.PASSWORD }}
+          script: |
+            uptime
+            whoami
+            neofetch
